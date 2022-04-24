@@ -2,6 +2,7 @@
 .gitignore
 .idea
 .env
+.data
 Dockerfile
 README.md
 docker-compose.yml

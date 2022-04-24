@@ -1,5 +1,8 @@
 import asyncio
+import hashlib
+import json
 import logging
+import time
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -7,10 +10,14 @@ from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.dispatcher import FSMContext
 from aiogram.types import BotCommand
 
+from storages.tarantool_db import TarantoolDB
 from tbot.bot_state import BotState
 from tbot.config import load_config
 
 logger = logging.getLogger(__name__)
+
+config = load_config()
+db = TarantoolDB(config.tarantool_db)
 
 
 async def start_handler(event: types.Message):
@@ -30,13 +37,13 @@ async def message_handler(event: types.Message, state: FSMContext):
 
 async def message_phone_handler(event: types.Message, state: FSMContext):
     await event.answer(f"🔎 Начинаю поиск, {event.text}!")
-    asyncio.create_task(check_data(5, event))
+    asyncio.create_task(check_phone(event))
     await state.finish()
 
 
 async def message_email_handler(event: types.Message, state: FSMContext):
     await event.answer(f"🔎 Начинаю поиск, {event.text}!")
-    asyncio.create_task(check_data(5, event))
+    asyncio.create_task(check_email(event))
     await state.finish()
 
 
@@ -59,10 +66,36 @@ async def set_commands(bot: Bot):
     await bot.set_my_commands(commands)
 
 
-async def check_data(delay, event: types.Message):
-    await asyncio.sleep(delay)
+async def check_phone(event: types.Message):
+    md5 = hashlib.md5(str(event.text).encode('utf-8')).hexdigest()
+    start_time = time.time()
+    phone_data = db.find_by_phone(md5)
+    data_str = 'К сожалению ничего не найдено'
+    if phone_data:
+        data = db.find_by_data_id(phone_data[0][1])
+        if data:
+            data_dict = json.JSONDecoder().decode(data[0][1])
+            data_str = '\n'.join(key + ': ' + value for key, value in data_dict.items())
+    logger.info("--- %s ms ---" % ((time.time() - start_time) * 1000))
+
     markup = get_keyboard()
-    await event.reply(event.text, reply_markup=markup)
+    await event.reply(data_str, reply_markup=markup)
+
+
+async def check_email(event: types.Message):
+    md5 = hashlib.md5(str(event.text).encode('utf-8')).hexdigest()
+    start_time = time.time()
+    email_data = db.find_by_email(md5)
+    data_str = 'К сожалению ничего не найдено'
+    if email_data:
+        data = db.find_by_data_id(email_data[0][1])
+        if data:
+            data_dict = json.JSONDecoder().decode(data[0][1])
+            data_str = '\n'.join(key + ': ' + value for key, value in data_dict.items())
+    logger.info("--- %s ms ---" % ((time.time() - start_time) * 1000))
+
+    markup = get_keyboard()
+    await event.reply(data_str, reply_markup=markup)
 
 
 def register_handlers_common(dp: Dispatcher):
@@ -88,8 +121,6 @@ def get_keyboard():
 async def main():
     logging.basicConfig(level=logging.INFO, format=u'[%(asctime)s] #%(levelname)-8s %(message)s')
     logger.info('Starting bot')
-
-    config = load_config()
 
     bot = Bot(token=config.tg_bot.token, parse_mode=types.ParseMode.HTML)
     dp = Dispatcher(bot, storage=MemoryStorage())

@@ -10,3 +10,24 @@ services:
     volumes:
       - ".:/app"
     restart: always
+    networks:
+      - network
+
+  tarantool:
+    image: tarantool/tarantool:2.8
+    environment:
+      - TARANTOOL_USER_NAME=${TARANTOOL_USER_NAME}
+      - TARANTOOL_USER_PASSWORD=${TARANTOOL_USER_PASSWORD}
+      - TARANTOOL_PORT=${TARANTOOL_PORT}
+      - TARANTOOL_PROMETHEUS_DEFAULT_METRICS_PORT=${TARANTOOL_PROMETHEUS_DEFAULT_METRICS_PORT}
+    volumes:
+      - ".data/tarantool:/var/lib/tarantool"
+    restart: always
+    networks:
+      - network
+    ports:
+      - "3301:3301"
+
+networks:
+  network:
+    driver: bridge
