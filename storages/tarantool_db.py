@@ -1,9 +1,10 @@
 import tarantool
 
+from storages.storage import Storage
 from tbot.config import TarantoolDBConfig
 
 
-class TarantoolDB:
+class TarantoolDB(Storage):
 
     def __init__(self, config: TarantoolDBConfig):
         self.conn = tarantool.connect(config.host, config.port, config.user, config.password)
@@ -11,14 +12,26 @@ class TarantoolDB:
         self.space_emails = self.conn.space('EMAILS')
         self.space_datas = self.conn.space('DATAS')
 
-    def close(self):
+    def close(self) -> None:
         self.conn.close()
 
-    def find_by_phone(self, phone: str):
-        return self.space_phones.select(phone)
+    def find_by_phone(self, phone: str) -> list:
+        data = self.space_phones.select(phone).data
+        if data:
+            return data[0]
 
-    def find_by_email(self, email: str):
-        return self.space_emails.select(email)
+        return []
 
-    def find_by_data_id(self, data_id: int):
-        return self.space_datas.select(data_id)
+    def find_by_email(self, email: str) -> list:
+        data = self.space_emails.select(email).data
+        if data:
+            return data[0]
+
+        return []
+
+    def find_by_data_id(self, data_id: int) -> list:
+        data = self.space_datas.select(data_id).data
+        if data:
+            return data[0]
+
+        return []

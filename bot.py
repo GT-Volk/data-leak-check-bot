@@ -10,14 +10,14 @@ from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.dispatcher import FSMContext
 from aiogram.types import BotCommand
 
-from storages.tarantool_db import TarantoolDB
+from storages.storage_factory import StorageFactory
 from tbot.bot_state import BotState
 from tbot.config import load_config
 
 logger = logging.getLogger(__name__)
 
 config = load_config()
-db = TarantoolDB(config.tarantool_db)
+db = StorageFactory(config)
 
 
 async def start_handler(event: types.Message):
@@ -72,9 +72,9 @@ async def check_phone(event: types.Message):
     phone_data = db.find_by_phone(md5)
     data_str = 'К сожалению ничего не найдено'
     if phone_data:
-        data = db.find_by_data_id(phone_data[0][1])
+        data = db.find_by_data_id(phone_data[1])
         if data:
-            data_dict = json.JSONDecoder().decode(data[0][1])
+            data_dict = json.JSONDecoder().decode(data[1])
             data_str = '\n'.join(key + ': ' + value for key, value in data_dict.items())
     logger.info("--- %s ms ---" % ((time.time() - start_time) * 1000))
 
@@ -88,9 +88,9 @@ async def check_email(event: types.Message):
     email_data = db.find_by_email(md5)
     data_str = 'К сожалению ничего не найдено'
     if email_data:
-        data = db.find_by_data_id(email_data[0][1])
+        data = db.find_by_data_id(email_data[1])
         if data:
-            data_dict = json.JSONDecoder().decode(data[0][1])
+            data_dict = json.JSONDecoder().decode(data[1])
             data_str = '\n'.join(key + ': ' + value for key, value in data_dict.items())
     logger.info("--- %s ms ---" % ((time.time() - start_time) * 1000))
 

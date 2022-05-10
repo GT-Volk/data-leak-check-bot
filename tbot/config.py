@@ -20,6 +20,7 @@ class TarantoolDBConfig:
 @dataclass
 class Config:
     tg_bot: TgBotConfig
+    storage: str
     tarantool_db: TarantoolDBConfig
 
 
@@ -30,6 +31,7 @@ def load_config():
             token=os.getenv("BOT_TOKEN"),
             admin_ids=list(map(int, os.getenv("ADMINS", []))),
         ),
+        storage=os.getenv("STORAGE", "fake"),
         tarantool_db=TarantoolDBConfig(
             host=os.getenv("TARANTOOL_DB_HOST", "localhost"),
             port=os.getenv("TARANTOOL_DB_PORT", 3301),
