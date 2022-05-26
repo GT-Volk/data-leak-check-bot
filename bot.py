@@ -3,6 +3,7 @@ import hashlib
 import json
 import logging
 import time
+import re
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -36,9 +37,14 @@ async def message_handler(event: types.Message, state: FSMContext):
 
 
 async def message_phone_handler(event: types.Message, state: FSMContext):
-    await event.answer(f"🔎 Начинаю поиск, {event.text}!")
-    asyncio.create_task(check_phone(event))
-    await state.finish()
+    pattern = (r"\+?\d?[- (]?\d{3}[- )]?[ ]?\d{3}[ -]?\d{2}[ -]?\d{2}")
+    match = re.match(pattern, event.text)
+    if not match:
+        await event.answer("Пожалуйста, введите корректный формат номера")
+    else:
+        await event.answer(f"🔎 Начинаю поиск, {event.text}!")
+        asyncio.create_task(check_phone(event))
+        await state.finish()
 
 
 async def message_email_handler(event: types.Message, state: FSMContext):
@@ -50,6 +56,8 @@ async def message_email_handler(event: types.Message, state: FSMContext):
 async def check_phone_command_handler(event: types.Message, state: FSMContext):
     await event.answer('📱 Введите номер телефона')
     await BotState.waiting_for_phone.set()
+
+
 
 
 async def check_email_command_handler(event: types.Message, state: FSMContext):
