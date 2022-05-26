@@ -48,16 +48,19 @@ async def message_phone_handler(event: types.Message, state: FSMContext):
 
 
 async def message_email_handler(event: types.Message, state: FSMContext):
-    await event.answer(f"🔎 Начинаю поиск, {event.text}!")
-    asyncio.create_task(check_email(event))
-    await state.finish()
+    pattern = (r"[\w\.-]+@[\w-]+\.[a-zа-я]{2,9}")
+    match = re.match(pattern, event.text)
+    if not match:
+        await event.answer("Пожалуйста, введите корректный адрес элетронной почты")
+    else:
+        await event.answer(f"🔎 Начинаю поиск, {event.text}!")
+        asyncio.create_task(check_email(event))
+        await state.finish()
 
 
 async def check_phone_command_handler(event: types.Message, state: FSMContext):
     await event.answer('📱 Введите номер телефона')
     await BotState.waiting_for_phone.set()
-
-
 
 
 async def check_email_command_handler(event: types.Message, state: FSMContext):
