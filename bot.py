@@ -58,6 +58,17 @@ async def message_email_handler(event: types.Message, state: FSMContext):
         await state.finish()
 
 
+async def message_surname_handler(event: types.Message, state: FSMContext):
+    pattern = (r"[а-яА-Яa-zA-Z-]{2,32}")
+    match = re.match(pattern, event.text)
+    if not match:
+        await event.answer("Фамилия введена не корректно")
+    else:
+        await event.answer(f"🔎 Начинаю поиск, {event.text}!")
+        asyncio.create_task(check_surname(event))
+        await state.finish()
+
+
 async def check_phone_command_handler(event: types.Message, state: FSMContext):
     await event.answer('📱 Введите номер телефона')
     await BotState.waiting_for_phone.set()
@@ -68,10 +79,16 @@ async def check_email_command_handler(event: types.Message, state: FSMContext):
     await BotState.waiting_for_email.set()
 
 
+async def check_surname_command_handler(event: types.Message, state: FSMContext):
+    await event.answer('🙍‍♂‍ Введите Фамилию')
+    await BotState.waiting_for_surname.set()
+
+
 async def set_commands(bot: Bot):
     commands = [
         BotCommand(command='/check_phone', description='📱 Проверить номер телефона'),
         BotCommand(command='/check_email', description='📧 Проверить адрес email'),
+        BotCommand(command='/check_surname', description='🙍‍♂ Проверить Фамилию'),
         BotCommand(command='/help', description='ℹ️ Справка'),
     ]
     await bot.set_my_commands(commands)
@@ -109,13 +126,31 @@ async def check_email(event: types.Message):
     await event.reply(data_str, reply_markup=markup)
 
 
+async def check_surname(event: types.Message):
+    md5 = hashlib.md5(str(event.text).encode('utf-8')).hexdigest()
+    start_time = time.time()
+    surname_data = db.find_by_surname(md5)
+    data_str = 'К сожалению ничего не найдено'
+    if surname_data:
+        data = db.find_by_data_id(surname_data[1])
+        if data:
+            data_dict = json.JSONDecoder().decode(data[1])
+            data_str = '\n'.join(key + ': ' + value for key, value in data_dict.items())
+    logger.info("--- %s ms ---" % ((time.time() - start_time) * 1000))
+
+    markup = get_keyboard()
+    await event.reply(data_str, reply_markup=markup)
+
+
 def register_handlers_common(dp: Dispatcher):
     dp.register_message_handler(start_handler, commands={'start', 'restart'}, state="*")
     dp.register_message_handler(help_handler, commands={'help'}, state="*")
     dp.register_message_handler(check_phone_command_handler, commands={'check_phone'}, state="*")
     dp.register_message_handler(check_email_command_handler, commands={'check_email'}, state="*")
+    dp.register_message_handler(check_surname_command_handler, commands={'check_surname'}, state="*")
     dp.register_message_handler(message_phone_handler, state=BotState.waiting_for_phone)
     dp.register_message_handler(message_email_handler, state=BotState.waiting_for_email)
+    dp.register_message_handler(message_surname_handler, state=BotState.waiting_for_surname)
     dp.register_message_handler(message_handler, state="*")
 
 
@@ -124,6 +159,7 @@ def get_keyboard():
     markup.add(
         types.KeyboardButton(text='/check_phone'),
         types.KeyboardButton(text='/check_email'),
+        types.KeyboardButton(text='/check_surname'),
     )
     markup.add(types.KeyboardButton(text='/help'))
     return markup
