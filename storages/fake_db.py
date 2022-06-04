@@ -16,6 +16,11 @@ class FakeDB(Storage):
             return ['asd', 1]
         return []
 
+    def find_by_surname(self, email: str) -> list:
+        if email == 'cd1a2693791e24bb09b002275442d9e2':  # Иванов
+            return ['asd', 1]
+        return []
+
     def find_by_data_id(self, data_id: int) -> list:
         if data_id == 1:
             return [1, '{"data": "fake"}']

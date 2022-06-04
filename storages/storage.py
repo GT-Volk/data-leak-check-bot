@@ -15,5 +15,9 @@ class Storage(ABC):
         pass
 
     @abstractmethod
+    def find_by_surname(self, email: str) -> list:
+        pass
+
+    @abstractmethod
     def find_by_data_id(self, data_id: int) -> list:
         pass
